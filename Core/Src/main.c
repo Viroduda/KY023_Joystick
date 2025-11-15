@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "../utils/inc/utils.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,13 +42,14 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+volatile uint16_t adc_result = 0;
+uint16_t joystick_x = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+void GPIO_Init(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -85,14 +86,36 @@ int main(void)
 
   /* Initialize all configured peripherals */
   /* USER CODE BEGIN 2 */
-
+  GPIO_Init();
+  ADC_Init();
+  USART2_Init();
+  delay_ms_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
+	  joystick_x = (5000*adc_result)/4095;
+	  //printf("Joystick X: %d mV \r\n", joystick_x);
+	  if (joystick_x > 4000)
+	  {
+		  GPIOA->BSRR = (1 << (8 + 16)); // output LOW
+		  GPIOA->BSRR = (1 << 6); // output HIGH
+	  }
+	  else if (joystick_x < 2000)
+	  {
+		  GPIOA->BSRR = (1 << (6 + 16)); // output LOW
+		  GPIOA->BSRR = (1 << 8); // output HIGH
+	  }
+	  else
+	  {
+		  GPIOA->BSRR = (1 << (6 + 16)); // output LOW
+		  GPIOA->BSRR = (1 << (8 + 16)); // output LOW
+	  }
+	  delay_ms(50);
+	  /* USER CODE END WHILE */
+
 
     /* USER CODE BEGIN 3 */
   }
@@ -141,7 +164,20 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void GPIO_Init(void)
+{
+	// Defining pins PA5, PA6, PA7 and PA8 as output with push-pull configuration
+	RCC->AHB1ENR |= (1 << 0);	// enabling PORT A clock
+	GPIOA->MODER &= ~((3 << 2*5) | (3 << 2*6) | (3 << 2*7) | (3 << 2*8)); // sets to 0 the bits that are going to be written
+	GPIOA->MODER |= ((1 << 2*5) | (1 << 2*6)| (1 << 2*7)| (1 << 2*8)); // pin PA5 defined as output
+	GPIOA->OTYPER &= ~((1 << 2*5) | (1 << 2*6)| (1 << 2*7)| (1 << 2*8)); // output with push-pull configuration
+	GPIOA->OSPEEDR &= ~((3 << 2*5) | (3 << 2*6) | (3 << 2*7) | (3 << 2*8)); // pin speed definition (inverse)
+	GPIOA->PUPDR &= ~((3 << 2*5) | (3 << 2*6) | (3 << 2*7) | (3 << 2*8));
 
+	// Defining pin PA0 as analog input without internal pull-up/down resistors, as the joystick already have them
+	GPIOA->MODER |= (3 << (0 * 2)); // pin PA0 defined as analog input
+	GPIOA->PUPDR &= ~(3 << (0 * 2)); // no pull-up/pull-down resistor for PA0
+}
 /* USER CODE END 4 */
 
 /**

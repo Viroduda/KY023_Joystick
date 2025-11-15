@@ -22,6 +22,7 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -57,7 +58,7 @@
 /* External variables --------------------------------------------------------*/
 
 /* USER CODE BEGIN EV */
-
+extern uint16_t adc_result;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -199,5 +200,11 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /* USER CODE BEGIN 1 */
-
+void ADC_IRQHandler(void)
+{
+	if (ADC1->SR & (1 << 1))  // EOC flag (End Of Conversion)
+	{
+		adc_result = ADC1->DR; // Leer el valor limpia el flag EOC automáticamente
+	}
+}
 /* USER CODE END 1 */
