@@ -42,8 +42,9 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-volatile uint16_t adc_result = 0;
+uint16_t adc_buffer[2];
 uint16_t joystick_x = 0;
+uint16_t joystick_y = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -87,7 +88,8 @@ int main(void)
   /* Initialize all configured peripherals */
   /* USER CODE BEGIN 2 */
   GPIO_Init();
-  ADC_Init();
+  ADC_Scan_Init();
+  DMA2_Stream0_Init();
   USART2_Init();
   delay_ms_init();
   /* USER CODE END 2 */
@@ -96,14 +98,14 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  joystick_x = (5000*adc_result)/4095;
-	  //printf("Joystick X: %d mV \r\n", joystick_x);
-	  if (joystick_x > 4000)
+	  joystick_x = adc_buffer[0];
+	  printf("Joystick X: %d mV ", joystick_x);
+	  if (joystick_x > 3500)
 	  {
 		  GPIOA->BSRR = (1 << (8 + 16)); // output LOW
 		  GPIOA->BSRR = (1 << 6); // output HIGH
 	  }
-	  else if (joystick_x < 2000)
+	  else if (joystick_x < 1000)
 	  {
 		  GPIOA->BSRR = (1 << (6 + 16)); // output LOW
 		  GPIOA->BSRR = (1 << 8); // output HIGH
@@ -112,6 +114,23 @@ int main(void)
 	  {
 		  GPIOA->BSRR = (1 << (6 + 16)); // output LOW
 		  GPIOA->BSRR = (1 << (8 + 16)); // output LOW
+	  }
+	  joystick_y = adc_buffer[1];
+	  printf("Joystick Y: %d mV \r\n", joystick_y);
+	  if (joystick_y > 3500)
+	  {
+		  GPIOA->BSRR = (1 << (5 + 16)); // output LOW
+		  GPIOA->BSRR = (1 << 7); // output HIGH
+	  }
+	  else if (joystick_y < 1000)
+	  {
+		  GPIOA->BSRR = (1 << (7 + 16)); // output LOW
+		  GPIOA->BSRR = (1 << 5); // output HIGH
+	  }
+	  else
+	  {
+		  GPIOA->BSRR = (1 << (5 + 16)); // output LOW
+		  GPIOA->BSRR = (1 << (7 + 16)); // output LOW
 	  }
 	  delay_ms(50);
 	  /* USER CODE END WHILE */
@@ -174,9 +193,9 @@ void GPIO_Init(void)
 	GPIOA->OSPEEDR &= ~((3 << 2*5) | (3 << 2*6) | (3 << 2*7) | (3 << 2*8)); // pin speed definition (inverse)
 	GPIOA->PUPDR &= ~((3 << 2*5) | (3 << 2*6) | (3 << 2*7) | (3 << 2*8));
 
-	// Defining pin PA0 as analog input without internal pull-up/down resistors, as the joystick already have them
-	GPIOA->MODER |= (3 << (0 * 2)); // pin PA0 defined as analog input
-	GPIOA->PUPDR &= ~(3 << (0 * 2)); // no pull-up/pull-down resistor for PA0
+	// Defining pins PA0 and PA1 as analog input without internal pull-up/down resistors, as the joystick already have them
+	GPIOA->MODER |= ((3 << (0 * 2)) | (3 << (1 * 2))); // pin PA0 defined as analog input
+	GPIOA->PUPDR &= ~(3 << (0 * 2) | (3 << (1 * 2))); // no pull-up/pull-down resistor for PA0
 }
 /* USER CODE END 4 */
 
